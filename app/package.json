@@ -1,0 +1,9 @@
+{
+  "name": "devops-capstone-app",
+  "version": "1.0.0",
+  "description": "Simple sample app for DevOps pipeline",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}
