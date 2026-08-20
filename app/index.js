@@ -10,7 +10,7 @@ const server = http.createServer((req, res) => {
     res.end(
       JSON.stringify({
         status: "healthy",
-        service: "devops-capstone-app",
+        service: "automated-cloud-deployment-app",
       }),
     );
     return;
@@ -20,7 +20,8 @@ const server = http.createServer((req, res) => {
     res.writeHead(200);
     res.end(
       JSON.stringify({
-        message: "🚀 DevOps Capstone Project Running Successfully on AWS!",
+        message:
+          "🚀 Automated Cloud Deployment Pipeline Running Successfully on AWS!",
         status: "healthy",
         timestamp: new Date().toISOString(),
       }),

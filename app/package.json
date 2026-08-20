@@ -1,5 +1,5 @@
 {
-  "name": "devops-capstone-app",
+  "name": "automated-cloud-deployment-app",
   "version": "1.0.0",
   "description": "Simple sample app for DevOps pipeline",
   "main": "index.js",
