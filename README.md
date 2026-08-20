@@ -2,23 +2,24 @@
 
 An automated cloud deployment pipeline for a Node.js application using **Terraform, AWS, Docker, Amazon ECR, Amazon EC2, and GitHub Actions**.
 
-The project demonstrates how Infrastructure as Code and CI/CD can be combined to provision cloud infrastructure, build and store container images, and automatically deploy application updates to an EC2 server.
+This project demonstrates how **Infrastructure as Code (IaC)** and **CI/CD automation** can be combined to provision cloud infrastructure, build and store container images, and automatically deploy application updates to an EC2 server.
 
 ---
 
 ## 📌 Project Overview
 
-The goal of this project is to create an automated deployment workflow where a code push to GitHub triggers the complete application delivery process.
+The goal of this project is to create an automated application delivery workflow where a code push to GitHub triggers the deployment process.
 
 The pipeline:
 
 1. Provisions AWS infrastructure using Terraform.
 2. Builds the Node.js application into a Docker image.
-3. Pushes the image to Amazon ECR.
-4. Connects to an EC2 instance through SSH.
-5. Pulls the latest Docker image from ECR.
-6. Stops the previous application container.
-7. Starts a new container with the updated image.
+3. Pushes the Docker image to Amazon ECR.
+4. Connects to the EC2 instance through SSH.
+5. Authenticates with Amazon ECR using the EC2 IAM role.
+6. Pulls the latest Docker image.
+7. Stops and removes the previous application container.
+8. Starts a new container with the updated image.
 
 ### Deployment Flow
 
@@ -55,16 +56,16 @@ GitHub Actions
 
 ## 🛠️ Technologies Used
 
-| Technology         | Purpose                      |
-| ------------------ | ---------------------------- |
-| **Node.js**        | Sample web application       |
-| **Docker**         | Application containerization |
-| **Terraform**      | Infrastructure as Code       |
-| **Amazon EC2**     | Application hosting          |
-| **Amazon ECR**     | Docker image registry        |
-| **AWS IAM**        | Secure AWS permissions       |
-| **GitHub Actions** | CI/CD automation             |
-| **Git & GitHub**   | Source control               |
+| Technology         | Purpose                        |
+| ------------------ | ------------------------------ |
+| **Node.js**        | Sample web application         |
+| **Docker**         | Application containerization   |
+| **Terraform**      | Infrastructure as Code         |
+| **Amazon EC2**     | Application hosting            |
+| **Amazon ECR**     | Docker image registry          |
+| **AWS IAM**        | Identity and access management |
+| **GitHub Actions** | CI/CD automation               |
+| **Git & GitHub**   | Source control                 |
 
 ---
 
@@ -79,7 +80,7 @@ automated-cloud-deployment-pipeline/
 │
 ├── app/
 │   ├── index.js                # Node.js web server
-│   └── package.json            # Node.js dependencies
+│   └── package.json            # Node.js configuration
 │
 ├── terraform/
 │   ├── main.tf                 # AWS infrastructure
@@ -96,17 +97,17 @@ automated-cloud-deployment-pipeline/
 
 ## ☁️ AWS Infrastructure
 
-Terraform is used to provision the required AWS infrastructure.
+Terraform is used to provision the AWS infrastructure required for the application.
 
 ### Amazon EC2
 
 The EC2 instance:
 
 - Uses Amazon Linux 2023
-- Runs the Dockerized Node.js application
+- Runs the containerized Node.js application
 - Uses the `t3.micro` instance type
 - Receives a public IP address
-- Uses an IAM instance profile for secure access to ECR
+- Uses an IAM instance profile for secure access to Amazon ECR
 
 ### Amazon ECR
 
@@ -116,36 +117,40 @@ A private Amazon ECR repository stores the Docker images:
 devops-capstone-repo
 ```
 
-Images are tagged using:
+The Docker images are tagged using:
 
 ```text
 <commit-sha>
 latest
 ```
 
-This allows the pipeline to maintain both an immutable commit-based image and a latest image tag.
+The commit SHA provides an immutable reference to a specific application version, while `latest` identifies the most recent image.
 
 ### Security Group
 
 The EC2 security group allows the required application traffic:
 
-|   Port | Purpose     |
-| -----: | ----------- |
-|   `22` | SSH         |
-|   `80` | HTTP        |
+| Port   | Purpose     |
+| ------ | ----------- |
+| `22`   | SSH         |
+| `80`   | HTTP        |
 | `3000` | Application |
 
 ---
 
 ## 🐳 Docker
 
-The Node.js application is packaged into a Docker image using `node:20-alpine`.
+The Node.js application is packaged into a Docker image using:
 
-The container exposes port `3000`.
+```text
+node:20-alpine
+```
+
+The application listens on port `3000`.
 
 The application can also be tested locally using Docker Compose.
 
-The EC2 deployment uses the following mapping:
+For the EC2 deployment, traffic is mapped as:
 
 ```text
 Port 80 → Port 3000
@@ -182,12 +187,12 @@ GitHub Actions performs the following steps:
 After the image is successfully pushed:
 
 1. GitHub Actions connects to the EC2 instance through SSH.
-2. EC2 authenticates with ECR using its IAM role.
+2. EC2 authenticates with ECR using its IAM instance role.
 3. The latest image is pulled from ECR.
 4. The existing application container is stopped and removed.
-5. A new container is started with the updated image.
+5. A new container is started using the updated image.
 
-The resulting workflow is:
+### End-to-End Workflow
 
 ```text
 Git Push
@@ -211,13 +216,13 @@ Node.js Application
 
 Several security practices were implemented:
 
-- AWS credentials are stored in **GitHub Actions Secrets** rather than committed to the repository.
+- AWS credentials used by GitHub Actions are stored in **GitHub Actions Secrets** rather than committed to the repository.
 - EC2 does not require long-lived AWS access keys.
-- EC2 uses an **IAM instance profile** to access ECR.
+- EC2 uses an **IAM instance profile** to access Amazon ECR.
 - `.gitignore` excludes Terraform state files, `.pem` keys, and `.env` files.
 - The ECR repository is private.
 
-> For production environments, SSH access should be restricted to trusted IP addresses rather than being broadly exposed.
+> For production environments, SSH access should be restricted to trusted IP addresses or replaced with a more secure deployment mechanism.
 
 ---
 
@@ -234,6 +239,8 @@ The pipeline requires the following repository secrets:
 | `EC2_SSH_KEY`           | EC2 SSH private key    |
 
 These values should **never be committed to Git**.
+
+> A future improvement is to replace long-lived AWS credentials with **GitHub Actions OIDC** and use short-lived AWS credentials.
 
 ---
 
@@ -278,6 +285,8 @@ Terraform outputs information such as the EC2 public IP and ECR repository URL.
 From the Terraform directory:
 
 ```bash
+cd terraform
+
 terraform init
 terraform validate
 terraform plan
@@ -313,7 +322,7 @@ GitHub Repository
 → Actions
 ```
 
-The workflow will build the Docker image, push it to ECR, and deploy it to EC2.
+The workflow builds the Docker image, pushes it to ECR, and deploys it to EC2.
 
 ---
 
@@ -321,7 +330,7 @@ The workflow will build the Docker image, push it to ECR, and deploy it to EC2.
 
 The deployment was verified directly on the EC2 instance.
 
-### Check the running container
+### Check the Running Container
 
 ```bash
 docker ps
@@ -334,7 +343,7 @@ CONTAINER ID   IMAGE                                    STATUS
 a8095c718248   .../devops-capstone-repo:latest         Up 3 minutes
 ```
 
-### Check application logs
+### Check Application Logs
 
 ```bash
 docker logs app
@@ -362,7 +371,7 @@ This project involved solving several real infrastructure and deployment issues.
 
 ### 1. Free-Tier Instance Compatibility
 
-The initial `t2.micro` configuration was not eligible for the available Free Tier in the selected AWS environment.
+The initial `t2.micro` configuration was not eligible for the available Free Tier configuration in the selected AWS environment.
 
 The instance configuration was changed to `t3.micro` after checking the available eligible options.
 
@@ -370,7 +379,7 @@ The instance configuration was changed to `t3.micro` after checking the availabl
 
 Terraform initially failed because the IAM user did not have permission to create IAM roles.
 
-The missing `iam:CreateRole` permission was addressed so Terraform could create the EC2 IAM role and instance profile.
+The required IAM permissions were addressed so Terraform could create the EC2 IAM role and instance profile.
 
 ### 3. EC2 Authentication with ECR
 
@@ -384,7 +393,7 @@ Terraform could not delete the ECR repository while Docker images were still sto
 
 The repository configuration was updated with:
 
-```text
+```hcl
 force_delete = true
 ```
 
@@ -410,7 +419,7 @@ terraform destroy
 
 The ECR repository is configured with:
 
-```text
+```hcl
 force_delete = true
 ```
 
@@ -436,7 +445,7 @@ This project demonstrates practical experience with:
 - Infrastructure lifecycle management
 - Cloud deployment troubleshooting
 
-The project demonstrates an end-to-end deployment pipeline rather than simply using the individual tools independently.
+The project demonstrates an **end-to-end cloud deployment pipeline** rather than simply using the individual tools independently.
 
 ---
 
@@ -453,6 +462,7 @@ Possible improvements include:
 - Use an AWS Load Balancer for production deployment
 - Implement blue-green or rolling deployments
 - Use more restrictive IAM policies
+- Add monitoring and logging with AWS CloudWatch
 
 ---
 
@@ -518,3 +528,9 @@ GitHub: [SnehaJana24](https://github.com/SnehaJana24)
 ## ⭐ Project Goal
 
 The goal of this project is to demonstrate a practical **automated cloud deployment workflow** where infrastructure is provisioned using Terraform and application delivery is automated through Docker, Amazon ECR, Amazon EC2, and GitHub Actions.
+
+The project provides hands-on experience with:
+
+**Infrastructure → Containerization → CI/CD → Cloud Deployment**
+
+It represents an end-to-end workflow for deploying a containerized application to AWS using modern DevOps practices.
